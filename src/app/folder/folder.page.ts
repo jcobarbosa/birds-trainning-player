@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NativeAudio } from '@ionic-native/native-audio/ngx';
+import { StorageService } from '../storage-service';
 
 @Component({
   selector: 'app-folder',
@@ -9,8 +10,14 @@ import { NativeAudio } from '@ionic-native/native-audio/ngx';
 })
 export class FolderPage implements OnInit {
   public folder: string;
+  public name: string;
 
-  constructor(private activatedRoute: ActivatedRoute, private nativeAudio: NativeAudio) { }
+  constructor(
+      private activatedRoute: ActivatedRoute,
+      private nativeAudio: NativeAudio,
+      private storage: StorageService) {
+
+  }
 
   ngOnInit() {
     this.folder = this.activatedRoute.snapshot.paramMap.get('id');
@@ -23,6 +30,17 @@ export class FolderPage implements OnInit {
       console.log('Successfully played');
     }).catch((err) => {
       console.log('error', err);
+    });
+  }
+
+  save() {
+    this.storage.set("nome", this.name);
+  }
+
+  get() {
+    this.storage.get("nome").then((value) => {
+      console.log(value);
+      this.name = value;
     });
   }
 }

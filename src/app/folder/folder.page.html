@@ -16,6 +16,9 @@
 
   <div id="container">
     <ion-button (click)="playSingle()">as</ion-button>
+    <ion-input [(ngModel)]="name"></ion-input>          
+    <ion-button (click)="save()">save</ion-button>
+    <ion-button (click)="get()">get</ion-button>                        
     <strong class="capitalize">{{ folder }}</strong>
     <p>Explore <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
   </div>
