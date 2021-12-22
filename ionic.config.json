@@ -1,0 +1,7 @@
+{
+  "name": "birds-trainning-player",
+  "integrations": {
+    "cordova": {}
+  },
+  "type": "angular"
+}
