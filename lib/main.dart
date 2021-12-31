@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:localstorage/localstorage.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(BirdsTrainningApp());
 
-class MyApp extends StatelessWidget {
+class BirdsTrainningApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
