@@ -37,9 +37,14 @@ class _HomePageState extends State<HomePage> {
 
   //arquivos de áudio
   final Map<String, AudioInfo> playList = {
-    "sample-3s.mp3": AudioInfo("assets/sample-3s.mp3", title: "sample-3s.mp3", desc: "Assets3", coverUrl: "assets/cover.png"),
-    "sample-9s.mp3": AudioInfo("assets/sample-9s.mp3", title: "sample-9s.mp3", desc: "Assets9", coverUrl: "assets/cover.png"),
-    "sample-15s.mp3": AudioInfo("assets/sample-15s.mp3", title: "sample-15s.mp3", desc: "Assets15", coverUrl: "assets/cover.png"),
+    "cantos01.wav": AudioInfo("assets/cantos01.wav", title: "cantos01.wav", desc: "Cantos 01", coverUrl: "assets/cover.png"),
+    // "cantos02.wav": AudioInfo("assets/cantos02.wav", title: "cantos02.wav", desc: "Cantos 02", coverUrl: "assets/cover.png"),
+    // "cantos03.wav": AudioInfo("assets/cantos03.wav", title: "cantos03.wav", desc: "Cantos 03", coverUrl: "assets/cover.png"),
+    // "cantos04.wav": AudioInfo("assets/cantos04.wav", title: "cantos04.wav", desc: "Cantos 04", coverUrl: "assets/cover.png"),
+    "musica01.wav": AudioInfo("assets/musica01.wav", title: "musica01.wav", desc: "Música 01", coverUrl: "assets/cover.png"),
+    // "musica02.wav": AudioInfo("assets/musica02.wav", title: "musica02.wav", desc: "Música 02", coverUrl: "assets/cover.png"),
+    // "musica03.wav": AudioInfo("assets/musica03.wav", title: "musica03.wav", desc: "Música 03", coverUrl: "assets/cover.png"),
+    // "musica04.wav": AudioInfo("assets/musica04.wav", title: "musica04.wav", desc: "Música 04", coverUrl: "assets/cover.png"),
   };
 
   bool initialized = false;
@@ -97,38 +102,55 @@ class _HomePageState extends State<HomePage> {
               Icon(Icons.music_note),
               Visibility(
                 child: IconButton(
-                  icon: Icon(Icons.play_arrow),
-                  onPressed: () {
-                    setState(() {
-                      AudioManager.instance.playOrPause();
-                      if (_scheduleActive == null) {
-                        const snackBar = const SnackBar(content: Text('Sem playlist'), duration: Duration(seconds: 2));
-                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                      }
-                    });
-                  }
+                    icon: const Icon(Icons.play_arrow),
+                    onPressed: () {
+                      setState(() {
+                        AudioManager.instance.playOrPause();
+                        if (_scheduleActive == null) {
+                          const snackBar = SnackBar(content: Text('Sem playlist'), duration: Duration(seconds: 2));
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        }
+                      });
+                    }
                 ),
                 visible: !AudioManager.instance.isPlaying && _scheduleActive != null,
               ),
               Visibility(
                 child: IconButton(
-                  icon: Icon(Icons.pause),
-                  onPressed: () {
-                    setState(() {
-                      AudioManager.instance.playOrPause();
-                    });
-                  }
+                    icon: const Icon(Icons.pause),
+                    onPressed: () {
+                      setState(() {
+                        AudioManager.instance.playOrPause();
+                      });
+                    }
                 ),
                 visible: AudioManager.instance.isPlaying && _scheduleActive != null,
               ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  setState(() {
-                    storage.setItem('schedules', null);
-                    list.schedules = [];
-                  });
-                }
+              Visibility(
+                child: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      if (list.schedules.isNotEmpty) {
+                        showDialog(
+                            context: context,
+                            builder: (context) => const ConfirmDialog()
+                        ).then((confirmation) {
+                          if (confirmation) {
+                            setState(() {
+                              storage.setItem('schedules', null);
+                              list.schedules = [];
+                              AudioManager.instance.stop();
+                              _scheduleActive = null;
+                            });
+                          }
+                        });
+                      } else {
+                        const snackBar = SnackBar(content: Text('Sem agendamentos para excluir'), duration: Duration(seconds: 2));
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      }
+                    }
+                ),
+                visible: list.schedules.isNotEmpty,
               )
             ]
         ),
@@ -141,7 +163,7 @@ class _HomePageState extends State<HomePage> {
             builder: (BuildContext context, AsyncSnapshot snapshot) {
               if (snapshot.data == null) {
                 return const Center(
-                  child: const CircularProgressIndicator(),
+                  child: CircularProgressIndicator(),
                 );
               }
 
@@ -149,29 +171,28 @@ class _HomePageState extends State<HomePage> {
                 var schedules = storage.getItem('schedules');
 
                 if (schedules != null) {
-                  print(schedules);
                   list.schedules = List<Schedule>
                       .from((schedules as List)
                       .map((_schedule) {
-                        var schedule = Schedule(
-                          id: _schedule['id'],
-                          start: _schedule['start'],
-                          end: _schedule['end'],
-                        );
-                        if (_schedule['songs'] != null && _schedule['songs'].isNotEmpty) {
-                          List<dynamic> songsList= _schedule['songs'];
-                          Set<AudioInfo?> _songs = {};
-                          for (var audioInfo in songsList) {
-                            if (audioInfo != null) {
-                              var _audioInfo = AudioInfo.fromJson(audioInfo);
-                              _songs.add(_audioInfo);
-                            }
-                          }
-                          schedule.songs = _songs;
+                    var schedule = Schedule(
+                      id: _schedule['id'],
+                      start: _schedule['start'],
+                      end: _schedule['end'],
+                    );
+                    if (_schedule['songs'] != null && _schedule['songs'].isNotEmpty) {
+                      List<dynamic> songsList= _schedule['songs'];
+                      Set<AudioInfo?> _songs = {};
+                      for (var audioInfo in songsList) {
+                        if (audioInfo != null) {
+                          var _audioInfo = AudioInfo.fromJson(audioInfo);
+                          _songs.add(_audioInfo);
                         }
-                        return schedule;
-                      },
-                    ),
+                      }
+                      schedule.songs = _songs;
+                    }
+                    return schedule;
+                  },
+                  ),
                   );
                 } else {
                   list.schedules = List.empty(growable: true);
@@ -186,9 +207,9 @@ class _HomePageState extends State<HomePage> {
                 widgets = list.schedules.map((scheduleListTile) {
                   return ListTile(
                     title:
-                      Row(children: [
-                        Text(scheduleListTile.id.toString() + ' ' + scheduleListTile.start + ' ' + scheduleListTile.end),
-                      ]
+                    Row(children: [
+                      Text('Inicia às ' + scheduleListTile.start + ' e toca até ' + scheduleListTile.end),
+                    ]
                     ),
                     selectedTileColor: const Color.fromRGBO(255, 255, 204, 0.6),
                     selected: scheduleListTile.selected,
@@ -204,21 +225,21 @@ class _HomePageState extends State<HomePage> {
                         }
 
                         if (scheduleFound != null) {
-                            showDialog(
-                                context: context,
-                                builder: (context) => AlertAddSchedule(scheduleEdit: scheduleFound, playList: playList)
-                            ).then((schedule) {
-                              if (schedule != null) {
-                                for (var scheduleFromList in list.schedules) {
-                                  if (scheduleFromList.id == schedule.id) {
-                                    scheduleFromList = schedule;
-                                  }
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertAddSchedule(scheduleEdit: scheduleFound, playList: playList),
+                          ).then((schedule) {
+                            if (schedule != null && _isValidScheduleTime(schedule)) {
+                              for (var scheduleFromList in list.schedules) {
+                                if (scheduleFromList.id == schedule.id) {
+                                  scheduleFromList = schedule;
                                 }
-                                _saveToStorage();
                               }
-                            });
-                          }
+                              _saveToStorage();
+                            }
+                          });
                         }
+                      }
                       );
                     },
                   );
@@ -237,28 +258,27 @@ class _HomePageState extends State<HomePage> {
                 ],
               );
             },
-          )),
+          )
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showDialog(
               context: context,
               builder: (context) => AlertAddSchedule(playList: playList)
           ).then((schedule) {
-            if (schedule != null) {
+            if (schedule != null && _isValidScheduleTime(schedule)) {
               _addScheduleModel(schedule);
             }
           });
         },
         child: const Icon(Icons.add),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.red,
       ),
     );
   }
 
   _addScheduleModel(final Schedule schedule) {
     setState(() {
-      print('salvar agendamento');
-      print(schedule.toString());
       list.schedules.add(schedule);
       _saveToStorage();
     });
@@ -282,7 +302,7 @@ class _HomePageState extends State<HomePage> {
       for (Schedule _schedule in list.schedules) {
         setState(() {
           var isToSelect = currentTime >= int.parse(_schedule.start.replaceAll(':', '')) &&
-                              currentTime < int.parse(_schedule.end.replaceAll(':', ''));
+              currentTime < int.parse(_schedule.end.replaceAll(':', ''));
 
           if (_schedule == _scheduleActive && _scheduleActive?.selected == true && !isToSelect) {
             AudioManager.instance.stop();
@@ -312,6 +332,75 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  bool _isValidScheduleTime(Schedule scheduleToValid) {
+    var isValid = true;
+    var start = int.parse(scheduleToValid.start.replaceAll(':', ''));
+    var end = int.parse(scheduleToValid.end.replaceAll(':', ''));
+
+    list.schedules.forEach((scheduleFromList) {
+      var startCompare = int.parse(scheduleFromList.start.replaceAll(':', ''));
+      var endCompare = int.parse(scheduleFromList.end.replaceAll(':', ''));
+
+      // if (start > startCompare && start <= endCompare) {
+      //   isValid = false;
+      //   print('valida1');
+      //   return;
+      // }
+      //
+      // if (end > startCompare && end <= endCompare) {
+      //   isValid = false;
+      //   print('valida2');
+      //   return;
+      // }
+
+      if (start >= startCompare && end <= endCompare) {
+        isValid = false;
+        return;
+      }
+    });
+
+    if (!isValid) {
+      var message = 'Os horários escolhidos ('+scheduleToValid.start+' - '+scheduleToValid.end+') sobrepõem um agendamento já existente.';
+      var snackBar = SnackBar(content: Text(message), duration: Duration(seconds: 5));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+
+    return isValid;
+  }
+}
+
+
+class ConfirmDialog extends StatefulWidget {
+  const ConfirmDialog({Key? key}): super(key: key);
+
+  @override
+  _ConfirmDialogState createState() => _ConfirmDialogState();
+}
+
+class _ConfirmDialogState extends State<ConfirmDialog> {
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Apagar agendamentos"),
+      content: const Text(
+          "Tem certeza de que deseja apagar todos os agendamentos?"),
+      actions: [
+        TextButton(
+          child: const Text("Cancelar", style: TextStyle(color: Colors.red)),
+          onPressed: () {
+            Navigator.pop(context, false);
+          },
+        ),
+        TextButton(
+          child: const Text("Confirmar", style: TextStyle(color: Colors.blue)),
+          onPressed: () {
+            Navigator.pop(context, true);
+          },
+        )
+      ],
+    );
+  }
 }
 
 class AlertAddSchedule extends StatefulWidget {
@@ -345,72 +434,96 @@ class _AlertAddScheduleState extends State<AlertAddSchedule> {
 
   @override
   Widget build(BuildContext context) {
-      return AlertDialog(
-        title: const Text("Agendamentos"),
-        content: Container(
-          constraints: const BoxConstraints.expand(),
-          child: Form(
+    return AlertDialog(
+      title: const Text("Agendamentos"),
+      content: Container(
+        constraints: const BoxConstraints.tightForFinite(),
+        child: Form(
             key: _formKey,
             child: Column(
-              children: [
-                TextFormField(
-                  controller: controllerStart,
-                  decoration: const InputDecoration(
-                    icon: Icon(Icons.lock_clock),
-                    hintText: '00:00',
-                    labelText: 'Início'
+                children: [
+                  // DatePickerDialog(
+                  //   initialDate: initialDate,
+                  //   firstDate: firstDate,
+                  //   lastDate: lastDate,
+                  //   currentDate: currentDate,
+                  //   initialEntryMode: initialEntryMode,
+                  //   selectableDayPredicate: selectableDayPredicate,
+                  //   helpText: helpText,
+                  //   cancelText: cancelText,
+                  //   confirmText: confirmText,
+                  //   initialCalendarMode: DatePickerMode.day,
+                  //   errorInvalidText: 'Horário inálido',
+                  //   fieldHintText: 'Hórario de Início',
+                  //   fieldLabelText: 'Inicio',
+                  // )
+                  TextFormField(
+                    controller: controllerStart,
+                    decoration: const InputDecoration(
+                        icon: Icon(Icons.lock_clock),
+                        hintText: '00:00',
+                        labelText: 'Início'
+                    ),
+                    maxLength: 5,
+                    keyboardType: TextInputType.number,
+                    onTap: () => _selectTime(context, controllerStart),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      TextInputMask(mask: '99:99', reverse: false)
+                    ],
+                    validator: (value) {
+                      if (value == null || value.isEmpty || _isTimeInvalid(value)) {
+                        return 'Horário inválido!';
+                      }
+                      return null;
+                    }, // Only numbers can be entered // Only numbers can be entered
                   ),
-                  maxLength: 5,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    TextInputMask(mask: '99:99', reverse: false)
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty || _isTimeInvalid(value)) {
-                      return 'Horário inválido!';
-                    }
-                    return null;
-                  }, // Only numbers can be entered // Only numbers can be entered
-                ),
-                TextFormField(
-                  controller: controllerEnd,
-                  decoration: const InputDecoration(
-                    icon: Icon(Icons.lock_clock),
-                    hintText: '00:00',
-                    labelText: 'Término',
+                  TextFormField(
+                    controller: controllerEnd,
+                    decoration: const InputDecoration(
+                      icon: Icon(Icons.lock_clock),
+                      hintText: '00:00',
+                      labelText: 'Término',
+                    ),
+                    maxLength: 5,
+                    keyboardType: TextInputType.number,
+                    onTap: () => _selectTime(context, controllerEnd),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      TextInputMask(mask: '99:99', reverse: false)
+                    ],
+                    validator: (value) {
+                      if (value == null || value.isEmpty || _isTimeInvalid(value)) {
+                        return 'Horário inválido!';
+                      }
+                      return null;
+                    },
                   ),
-                  maxLength: 5,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    TextInputMask(mask: '99:99', reverse: false)
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty || _isTimeInvalid(value)) {
-                      return 'Horário inválido!';
-                    }
-                    return null;
-                  },
-                ),
-                Expanded(
-                  child: CheckboxListTileDialog(scheduleEdit: widget.scheduleEdit, playList: widget.playList, mapOfSongs: _mapOfSongs)
-                )
-              ]
+                  Expanded(
+                      child: SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: CheckboxListTileDialog(
+                              scheduleEdit: widget.scheduleEdit,
+                              playList: widget.playList,
+                              mapOfSongs: _mapOfSongs
+                          )
+                      )
+                  )
+                ]
             )
-          ),
         ),
+      ),
 
-        actions: [
-          TextButton(
-            child: const Text("Cancelar", style: TextStyle(color: Colors.red)),
-            onPressed: () {
-              setState(() {
-                Navigator.pop(context);
-              });
-            },
-          ),
-          TextButton(
+      actions: [
+        TextButton(
+          child: const Text("Cancelar", style: TextStyle(color: Colors.red)),
+          onPressed: () {
+            setState(() {
+              Navigator.pop(context);
+            });
+          },
+        ),
+        TextButton(
             child: const Text("Salvar", style: TextStyle(color: Colors.blue)),
             onPressed: () {
               setState(() {
@@ -433,10 +546,10 @@ class _AlertAddScheduleState extends State<AlertAddSchedule> {
                 }
               });
             }
-          ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
+  }
 
   _isTimeInvalid(String? value) {
 
@@ -459,6 +572,32 @@ class _AlertAddScheduleState extends State<AlertAddSchedule> {
     }
 
     return false;
+  }
+
+  _selectTime(BuildContext context, TextEditingController controller) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      helpText: 'Selecione o horário',
+      cancelText: 'Cancelar',
+      confirmText: 'Confirmar',
+      initialTime: _getSelectedTime(controller),
+    );
+    if (picked != null) {
+      setState(() {
+        controller.text = picked.hour.toString().padLeft(2, '0') + ':' + picked.minute.toString().padLeft(2, '0');
+      });
+    }
+  }
+
+  TimeOfDay _getSelectedTime(TextEditingController controller) {
+    var timeOfDay = TimeOfDay.now();
+
+    if (controller.text.isNotEmpty) {
+      var timeSelected = controller.text.split(':');
+      timeOfDay = TimeOfDay(hour: int.parse(timeSelected[0]), minute: int.parse(timeSelected[1]));
+    }
+
+    return timeOfDay;
   }
 
 }
@@ -493,20 +632,25 @@ class _CheckboxListTileDialogState extends State<CheckboxListTileDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Wrap(
+      direction: Axis.horizontal,
+      spacing: 8,
+      runSpacing: 12,
       children: widget.playList.keys.map((e) =>
           CheckboxListTile(
-            title: Text(e),
-            value: widget.mapOfSongs.contains(e),
-            onChanged: (bool? value) {
-              setState(() {
-                if (value!) {
-                  widget.mapOfSongs.add(e);
-                } else {
-                  widget.mapOfSongs.remove(e);
-                }
-              });
-            }
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+              title: Text(e),
+              value: widget.mapOfSongs.contains(e),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value!) {
+                    widget.mapOfSongs.add(e);
+                  } else {
+                    widget.mapOfSongs.remove(e);
+                  }
+                });
+              }
           )
       ).toList(growable: false),
     );
